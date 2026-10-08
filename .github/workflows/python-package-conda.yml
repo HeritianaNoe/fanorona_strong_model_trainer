@@ -26,10 +26,10 @@ jobs:
 
       - name: Build model + export TFLite
         run: |
-          SCRIPT=$(find . -name "fanorona_resnet_model.py" | head -n 1)
+          SCRIPT=$(find . -name "model.py" | head -n 1)
           
           if [ -z "$SCRIPT" ]; then
-            echo "Error: tsy hita ny fanorona_resnet_model.py"
+            echo "Error: tsy hita ny model.py"
             ls -la
             exit 1
           fi
@@ -38,7 +38,7 @@ jobs:
           DIR=$(dirname "$SCRIPT")
           
           cd "$DIR"
-          python fanorona_resnet_model.py
+          python model.py
           
           # Averina any amin'ny root
           cp -f fanorona_model.tflite $GITHUB_WORKSPACE/ || true
