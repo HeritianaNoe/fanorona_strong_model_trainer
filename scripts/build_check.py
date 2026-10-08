@@ -1,4 +1,10 @@
 import sys
+from pathlib import Path
+
+# Ajout de la racine du projet au chemin de recherche Python pour trouver 'model'
+root_dir = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(root_dir))
+
 import numpy as np
 
 print('Python:', sys.version.split()[0])
