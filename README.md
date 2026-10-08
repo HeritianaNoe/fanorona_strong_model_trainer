@@ -1,41 +1,46 @@
 # Fanorona Strong AI Trainer
 
-Python trainer for the Flutter Fanorona program.
+Python self-play trainer for the Fanorona Flutter AI project.
 
 ## Model contract
 
-The generated model is compatible with `NNEncoding` in the Flutter app:
+- Input: `[1, 5, 9, 7]` float32
+- Policy: `[1, 1080]` float32 logits
+- Value: `[1, 1]` float32 in `[-1, 1]`
+- Action: `((row*9 + col)*8 + direction)*3 + moveType`
 
-- input: `[1, 5, 9, 7]` float32
-- policy: `[1, 1080]` float32 logits
-- value: `[1, 1]` float32 in `[-1, 1]`
-- action id: `((row*9 + col)*8 + directionIndex)*3 + moveType`
-- directions: N, S, W, E, NW, NE, SW, SE
-- move types: normal=0, approach=1, withdrawal=2
+## Windows build
 
-The trainer implements the same 5x9 board, strong-point diagonals, forced capture,
-approach/withdrawal capture, and Riatra capture chains used by the Dart source.
+**Python 3.11 is recommended.** Run:
 
-## Recommended strong training
+```bat
+build.bat
+```
 
-1. Install Python 3.11.
-2. `py -3.11 -m venv .venv`
-3. `.venv\\Scripts\\activate`
-4. `pip install -r requirements.txt`
-5. Start a first run:
-   `python train_fanorona.py --iterations 12 --games-per-iteration 80 --simulations 600 --epochs 4`
-6. For a much stronger model, continue:
-   `python train_fanorona.py --iterations 40 --games-per-iteration 300 --simulations 1600 --epochs 6 --resume checkpoints/latest.keras`
-7. Export:
-   `python convert_tflite.py --checkpoint checkpoints/latest.keras --output fanorona_model.tflite`
+This creates `.venv`, installs dependencies, compiles all Python sources, and validates the model contract.
 
-For a serious CPU training run, increase games and simulations rather than only increasing
-network size. The self-play data is the important part.
+## Quick training
 
-## Fast test
+```bat
+train_strong.bat 1 4 80 1
+```
 
-`python train_fanorona.py --iterations 1 --games-per-iteration 4 --simulations 80 --epochs 1`
+Arguments:
 
-Then:
-`python convert_tflite.py --checkpoint checkpoints/latest.keras --output fanorona_model.tflite`
-"# fanorona_strong_model_trainer" 
+`iterations games_per_iteration mcts_simulations epochs`
+
+For stronger local training, for example:
+
+```bat
+train_strong.bat 40 300 1600 6
+```
+
+The exported file is `fanorona_model.tflite`.
+
+## GitHub Actions
+
+`Build and Validate` runs on push/PR.
+
+`Train Fanorona Model` can be started manually from **Actions → Train Fanorona Model → Run workflow**. The resulting TFLite model is uploaded as a workflow artifact.
+
+Do not commit generated checkpoints or TFLite binaries; they are ignored by `.gitignore`.

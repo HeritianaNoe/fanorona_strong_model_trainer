@@ -1,2 +1,2 @@
-numpy>=1.26
+numpy>=1.26,<3
 tensorflow>=2.16,<3
