@@ -1,0 +1,54 @@
+name: Build Fanorona AlphaZero TFLite
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-tflite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install tensorflow==2.15.0 numpy
+
+      - name: Build model + export TFLite
+        run: |
+          SCRIPT=$(find . -name "fanorona_resnet_model.py" | head -n 1)
+          
+          if [ -z "$SCRIPT" ]; then
+            echo "Error: tsy hita ny fanorona_resnet_model.py"
+            ls -la
+            exit 1
+          fi
+          
+          echo "Found script at: $SCRIPT"
+          DIR=$(dirname "$SCRIPT")
+          
+          cd "$DIR"
+          python fanorona_resnet_model.py
+          
+          # Averina any amin'ny root
+          cp -f fanorona_model.tflite $GITHUB_WORKSPACE/ || true
+          cp -f fanorona_resnet.keras $GITHUB_WORKSPACE/ || true
+
+      - name: Upload TFLite artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fanorona-model-tflite
+          path: |
+            **/fanorona_model.tflite
+            **/fanorona_resnet.keras
+          retention-days: 30
