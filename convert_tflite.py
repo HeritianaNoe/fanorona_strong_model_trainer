@@ -1,17 +1,14 @@
-import argparse, tensorflow as tf
+- name: Train
+        run: |
+          python train_fanorona.py \
+            --iterations ${{ inputs.iterations }} \
+            --games-per-iteration ${{ inputs.games }} \
+            --simulations ${{ inputs.simulations }} \
+            --epochs ${{ inputs.epochs }} \
+            --out checkpoints
+            
+      - name: Check checkpoint exists
+        run: ls -la checkpoints/
 
-p = argparse.ArgumentParser()
-p.add_argument('--checkpoint', required=True)
-p.add_argument('--output', default='fanorona_model.tflite')
-a = p.parse_args()
-
-model = tf.keras.models.load_model(a.checkpoint)
-
-# Keep float32: the Flutter encoder and current NNEncoding expect float tensors and this avoids
-# quantization changing policy/value calibration during the first strong-model tests.
-converter = tf.lite.TFLiteConverter.from_keras_model(model)
-converter.optimizations = []
-tflite = converter.convert()
-
-open(a.output, 'wb').write(tflite)
-print('saved', a.output, len(tflite), 'bytes')
+      - name: Export TFLite
+        run: python convert_tflite.py --checkpoint checkpoints/latest.keras --output fanorona_model.tflite
