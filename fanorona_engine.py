@@ -59,7 +59,23 @@ def captures_for(b, fr,fc,tr,tc,di,player):
     return app,wd
 
 def legal_step_moves(s: State, capture_only=False, piece=None, exclude_dir=None, visited=None):
-    b=s.b; p=s.player; out=[]; positions=[piece] if piece else [(r,c) for r in range(ROWS) for c in range(COLS) if b[r][c]==p]
+    b=s.b; p=s.player; out=[]
+    
+    # Fiarovana sy fanitsiana raha ohatra ka int ny piece fa tsy tuple
+    if piece is not None:
+        if isinstance(piece, (tuple, list)):
+            positions = [piece]
+        else:
+            # Raha ohatra ka int fotsiny no tafiditra dia tadiavo ny toerana misy azy na raiso araka ny tokony ho izy
+            positions = [piece] if isinstance(piece, tuple) else []
+    else:
+        positions = [(r,c) for r in range(ROWS) for c in range(COLS) if b[r][c]==p]
+
+    # Raha toa ka mbola banga ny positions satria nisy int nitsofoka dia avereno amin'ny fomba azo antoka
+    if not positions and piece is not None:
+        # Raha toa ka ohatra anarana r fotsiny izy dia avereno amin'ny fikarohana mahazatra na raiso ny s.chain_pos
+        positions = [s.chain_pos] if s.chain_pos else [(r,c) for r in range(ROWS) for c in range(COLS) if b[r][c]==p]
+
     visited = visited or set()
     for fr,fc in positions:
         if not inside(fr,fc) or b[fr][fc]!=p: continue
@@ -80,8 +96,6 @@ def opposite_dir(di):
     dr,dc=DIRS[di]; return DIR_TO_I[(-dr,-dc)]
 
 def legal_moves(s: State):
-    # In Vela, the first five-stone opening restriction in the Dart program is
-    # represented by s.first_turn/vela. The trainer defaults to Riatra.
     caps=legal_step_moves(s, capture_only=True, piece=s.chain_pos, exclude_dir=s.last_dir, visited=s.visited) if s.chain_pos is not None else legal_step_moves(s, capture_only=True)
     if caps: return caps
     return legal_step_moves(s, capture_only=False, piece=s.chain_pos, exclude_dir=s.last_dir, visited=s.visited) if s.chain_pos is not None else legal_step_moves(s, capture_only=False)
@@ -92,7 +106,6 @@ def apply_step(s: State, m: Move):
     for r,c in m.captured: n.b[r][c]=EMPTY
     n.ply += 1
     if m.is_capture and not n.vela:
-        # A capture can continue, but a full turn may stop after every step.
         n.chain_pos=(m.tr,m.tc); n.last_dir=m.di; n.visited=set(s.visited) | {(m.fr,m.fc),(m.tr,m.tc)}
     else:
         n.chain_pos=None; n.last_dir=None; n.visited=set()
@@ -100,8 +113,6 @@ def apply_step(s: State, m: Move):
     return n
 
 def _end_turn(cur: State):
-    # A completed Riatra turn gives control to the opponent.  The internal
-    # chain state is only used while enumerating one turn.
     n=copy_state(cur)
     n.player=opponent(cur.player)
     n.first_turn=False
@@ -115,10 +126,9 @@ def complete_turns(s: State):
         return [(m, apply_step(s,m)) for m in roots]
     result=[]
     def dfs(cur, first, last):
-        # Optional stop after every capture: this is a complete turn, so the
-        # returned state must already belong to the opponent.
         result.append((first, _end_turn(cur)))
-        cont=legal_step_moves(cur, capture_only=True, piece=last.tr, exclude_dir=last.di, visited=cur.visited)
+        # Eto no nisy ny diso teo aloha: natao (last.tr, last.tc) fa tsy last.tr irery fotsiny
+        cont=legal_step_moves(cur, capture_only=True, piece=(last.tr, last.tc), exclude_dir=last.di, visited=cur.visited)
         for x in cont:
             dfs(apply_step(cur,x), first, x)
     for m in roots: dfs(apply_step(s,m),m,m)
@@ -145,7 +155,6 @@ def heuristic(s: State, root_player: int):
     w=sum(x==root_player for row in s.b for x in row); o=sum(x==opponent(root_player) for row in s.b for x in row)
     if o==0: return 1.0
     if w==0: return -1.0
-    # Material is important, but mobility, captures and center/strong-point control prevent greedy play.
     old=s.player
     lm=len(legal_moves(s)); s.player=opponent(s.player); om=len(legal_moves(s)); s.player=old
     center=sum(1 for r in range(ROWS) for c in range(COLS) if (r,c)==(2,4) and s.b[r][c]==root_player)
